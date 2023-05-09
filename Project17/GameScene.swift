@@ -25,6 +25,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var gameTimer: Timer?
     var isPlayerTouched = false
     
+    var enemyPassed = 0 {
+        didSet {
+            print(enemyPassed)
+        }
+    }
+    var timeInterval = 1.0 {
+        didSet {
+            print(timeInterval)
+        }
+    }
+    
     override func didMove(to view: SKView) {
         backgroundColor = .black
         
@@ -49,12 +60,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.gravity = CGVector(dx: 0, dy: 0)
         physicsWorld.contactDelegate = self
         
-        gameTimer = Timer.scheduledTimer(timeInterval: 0.35, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
+        gameTimer = Timer.scheduledTimer(timeInterval: timeInterval, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
     }
     
     override func update(_ currentTime: TimeInterval) {
+        if enemyPassed >= 5 {
+            if timeInterval > 0.3 {
+                timeInterval -= 0.1
+            }
+            enemyPassed = 0
+            
+            gameTimer?.invalidate()
+            gameTimer = Timer.scheduledTimer(timeInterval: timeInterval, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
+        }
+        
         for node in children {
             if node.position.x < -300 {
+                enemyPassed += 1
                 node.removeFromParent()
             }
         }
