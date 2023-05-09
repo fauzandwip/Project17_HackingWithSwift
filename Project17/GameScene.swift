@@ -23,6 +23,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let possibleEnemies = ["ball", "hammer", "tv"]
     var isGameOver = false
     var gameTimer: Timer?
+    var isPlayerTouched = false
     
     override func didMove(to view: SKView) {
         backgroundColor = .black
@@ -51,10 +52,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         gameTimer = Timer.scheduledTimer(timeInterval: 0.35, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
     }
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        
-    }
-    
     override func update(_ currentTime: TimeInterval) {
         for node in children {
             if node.position.x < -300 {
@@ -68,8 +65,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if !isPlayerTouched { return }
         guard let touch = touches.first else { return }
         var location = touch.location(in: self)
+        
         
         if location.y < 100 {
             location.y = 100
@@ -78,6 +77,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         player.position = location
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        isPlayer("began", touches: touches)
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        isPlayer("ended", touches: touches)
+    }
+    
+    func isPlayer(_ from: String, touches: Set<UITouch>) {
+        
+        for touch in touches {
+            let nodes = nodes(at: touch.location(in: self))
+            for node in nodes {
+                if node.contains(player) {
+                    switch from {
+                    case "began":
+                        isPlayerTouched = true
+                    case "ended":
+                        isPlayerTouched = false
+                    default:
+                        return
+                    }
+                }
+            }
+        }
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
@@ -101,6 +129,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         spriteEnemy.physicsBody?.velocity = CGVector(dx: -500, dy: 0)
         spriteEnemy.physicsBody?.angularVelocity = 5
         spriteEnemy.physicsBody?.linearDamping = 0
+        // rotate speed
         spriteEnemy.physicsBody?.angularDamping = 0
     }
     
