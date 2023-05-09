@@ -12,6 +12,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var starfield: SKEmitterNode!
     var player: SKSpriteNode!
+    var restart: SKLabelNode!
     
     var scoreLabel: SKLabelNode!
     var score = 0 {
@@ -25,16 +26,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var gameTimer: Timer?
     var isPlayerTouched = false
     
-    var enemyPassed = 0 {
-        didSet {
-            print(enemyPassed)
-        }
-    }
-    var timeInterval = 1.0 {
-        didSet {
-            print(timeInterval)
-        }
-    }
+    var enemyPassed = 0
+    var timeInterval = 1.0
     
     override func didMove(to view: SKView) {
         backgroundColor = .black
@@ -45,11 +38,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         starfield.zPosition = -1
         addChild(starfield)
         
-        player = SKSpriteNode(imageNamed: "player")
-        player.position = CGPoint(x: 100, y: 384)
-        player.physicsBody = SKPhysicsBody(texture: player.texture!, size: player.size)
-        player.physicsBody?.contactTestBitMask = 1
-        addChild(player)
+        createSpaceship()
         
         scoreLabel = SKLabelNode(fontNamed: "Chalkduster")
         scoreLabel.text = "Score: 0"
@@ -60,7 +49,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.gravity = CGVector(dx: 0, dy: 0)
         physicsWorld.contactDelegate = self
         
-        gameTimer = Timer.scheduledTimer(timeInterval: timeInterval, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
+        startTimer()
     }
     
     override func update(_ currentTime: TimeInterval) {
@@ -71,18 +60,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             enemyPassed = 0
             
             gameTimer?.invalidate()
-            gameTimer = Timer.scheduledTimer(timeInterval: timeInterval, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
-        }
-        
-        for node in children {
-            if node.position.x < -300 {
-                enemyPassed += 1
-                node.removeFromParent()
-            }
+            startTimer()
         }
         
         if !isGameOver {
             score += 1
+            
+            for node in children {
+                if node.position.x < -300 {
+                    enemyPassed += 1
+                    node.removeFromParent()
+                }
+            }
         }
     }
     
@@ -107,6 +96,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let nodes = nodes(at: location)
+        
+        if let restart {
+            if nodes.contains(restart) {
+                restartGame()
+            }
+        }
         
         isPlayer("ended", touches: touches)
     }
@@ -116,7 +114,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         for touch in touches {
             let nodes = nodes(at: touch.location(in: self))
             for node in nodes {
-                if node.contains(player) {
+                if node == player {
                     switch from {
                     case "began":
                         isPlayerTouched = true
@@ -126,6 +124,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                         return
                     }
                 }
+                
             }
         }
     }
@@ -137,6 +136,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         player.removeFromParent()
         isGameOver = true
+        gameTimer?.invalidate()
+        enemyPassed = 0
+        isPlayerTouched = false
+        
+        restart = SKLabelNode(fontNamed: "Chalkduster")
+        restart.name = "restart"
+        restart.text = "Restart"
+        restart.fontSize = 45
+        restart.position = CGPoint(x: 512, y: 384)
+        restart.zPosition = 1
+        addChild(restart)
     }
     
     @objc func createEnemy() {
@@ -153,6 +163,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         spriteEnemy.physicsBody?.linearDamping = 0
         // rotate speed
         spriteEnemy.physicsBody?.angularDamping = 0
+    }
+    
+    func restartGame() {
+        self.enumerateChildNodes(withName: "restart") { node, stop in
+            node.removeFromParent()
+        }
+        
+        score = 0
+        enemyPassed = 0
+        timeInterval = 1
+        isGameOver = false
+        
+        createSpaceship()
+        startTimer()
+    }
+    
+    func createSpaceship() {
+        
+        player = SKSpriteNode(imageNamed: "player")
+        player.position = CGPoint(x: 100, y: 384)
+        player.physicsBody = SKPhysicsBody(texture: player.texture!, size: player.size)
+        player.physicsBody?.contactTestBitMask = 1
+        addChild(player)
+    }
+    
+    func startTimer() {
+        gameTimer = Timer.scheduledTimer(timeInterval: timeInterval, target: self, selector: #selector(createEnemy), userInfo: nil, repeats: true)
     }
     
 }
